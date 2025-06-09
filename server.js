@@ -28,7 +28,9 @@ app.get('/create-room', (req, res) => {
     viewers: new Set(),
     created: Date.now()
   });
-  res.json({ roomCode });
+
+  res.setHeader('Content-Type', 'application/json');
+  res.status(200).send(JSON.stringify({ roomCode }));
 });
 
 // Streamer page
