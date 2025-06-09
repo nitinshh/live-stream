@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeLive - Live Stream</title>
+    <link rel="icon" type="image/png" href="/liveicon.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            min-height: 100vh;
+            color: white;
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .video-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-section {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .live-indicator {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .leave-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .leave-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+        }
+
+        .room-code {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .video-container {
+            position: relative;
+            flex: 1;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #remoteVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .loading-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 1.2rem;
+            color: #ecf0f1;
+            margin-bottom: 10px;
+        }
+
+        .loading-subtext {
+            font-size: 0.9rem;
+            color: #95a5a6;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .error-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: linear-gradient(135deg, #c0392b, #8b0000);
+        }
+
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .error-message {
+            font-size: 1rem;
+            color: #ecf0f1;
+            text-align: center;
+            max-width: 400px;
+            margin-bottom: 20px;
+        }
+
+        .retry-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            border: none;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .retry-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .controls-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            padding: 40px 20px 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .video-container:hover .controls-overlay {
+            transform: translateY(0);
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+            width: 45px;
+            height: 45px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+        }
+
+        .volume-slider {
+            width: 100px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #3498db;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .fullscreen-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 40px;
+            height: 40px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .fullscreen-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+
+        /* Chat Styles */
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .chat-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .viewer-count {
+            background: rgba(52, 152, 219, 0.3);
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .chat-message {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 12px;
+            border-radius: 12px;
+            border-left: 3px solid #3498db;
+            animation: slideIn 0.3s ease;
+        }
+
+        .chat-message.own {
+            background: rgba(52, 152, 219, 0.2);
+            border-left-color: #2980b9;
+            margin-left: 20px;
+        }
+
+        .chat-message.system {
+            background: rgba(241, 196, 15, 0.2);
+            border-left-color: #f1c40f;
+            font-style: italic;
+            text-align: center;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-username {
+            font-weight: bold;
+            color: #3498db;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+
+        .message-text {
+            font-size: 0.9rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            color: #95a5a6;
+            margin-top: 4px;
+        }
+
+        .chat-input-container {
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .username-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            color: white;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .username-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .message-input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 10px 15px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        .message-input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .send-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(52, 152, 219, 0.4);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            
+            .chat-section {
+                width: 100%;
+                height: 40vh;
+                border-left: none;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .video-section {
+                height: 60vh;
+            }
+            
+            .header {
+                padding: 10px 15px;
+            }
+            
+            .title {
+                font-size: 1rem;
+            }
+            
+            .controls {
+                gap: 10px;
+            }
+            
+            .volume-control {
+                display: none;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Custom scrollbar for chat */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="video-section">
+            <div class="header">
+                <div class="header-left">
+                    <div class="title">
+                        <span>🎥 LiveStream Pro</span>
+                        <div class="live-indicator" id="liveIndicator" style="display: none;">🔴 LIVE</div>
+                    </div>
+                    <button class="leave-btn" onclick="leaveStream()">Leave Stream</button>
+                </div>
+                <div class="room-code" id="roomCode">LOADING...</div>
+            </div>
+
+            <div class="video-container" id="videoContainer">
+                <video id="remoteVideo" autoplay playsinline></video>
+                
+                <div class="loading-screen" id="loadingScreen">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-text">Connecting to stream...</div>
+                    <div class="loading-subtext">Please wait while we establish connection with the streamer</div>
+                </div>
+
+                <div class="error-screen" id="errorScreen">
+                    <div class="error-icon">⚠️</div>
+                    <div class="error-title">Connection Failed</div>
+                    <div class="error-message" id="errorMessage">
+                        Unable to connect to the stream. The streamer might be offline or the room code is invalid.
+                    </div>
+                    <button class="retry-btn" onclick="retryConnection()">Retry Connection</button>
+                </div>
+
+                <button class="fullscreen-btn" onclick="toggleFullscreen()" title="Toggle Fullscreen">
+                    ⛶
+                </button>
+
+                <div class="controls-overlay">
+                    <div class="controls">
+                        <button class="control-btn" onclick="toggleMute()" id="muteBtn" title="Toggle Mute">
+                            🔊
+                        </button>
+                        
+                        <div class="volume-control">
+                            <span>🔉</span>
+                            <input type="range" class="volume-slider" id="volumeSlider" min="0" max="100" value="100">
+                            <span>🔊</span>
+                        </div>
+                        
+                        <button class="control-btn" onclick="togglePictureInPicture()" title="Picture-in-Picture">
+                            📺
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-section">
+            <div class="chat-header">
+                <div class="chat-title">
+                    💬 Live Chat
+                    <div class="viewer-count" id="viewerCount">0 viewers</div>
+                </div>
+            </div>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message system">
+                    <div class="message-text">Welcome to the live stream! Chat with other viewers below.</div>
+                </div>
+            </div>
+            
+            <div class="chat-input-container">
+                <input type="text" class="username-input" id="usernameInput" placeholder="Enter your username..." maxlength="20">
+                <div class="message-input-group">
+                    <input type="text" class="message-input" id="messageInput" placeholder="Type a message..." maxlength="200" disabled>
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const roomCode = window.location.pathname.split('/').pop();
+        
+        let remoteStream = null;
+        let peerConnection = null;
+        let isConnected = false;
+        let isMuted = false;
+        let username = '';
+        let viewerCount = 0;
+        
+        // DOM elements
+        const remoteVideo = document.getElementById('remoteVideo');
+        const loadingScreen = document.getElementById('loadingScreen');
+        const errorScreen = document.getElementById('errorScreen');
+        const roomCodeEl = document.getElementById('roomCode');
+        const liveIndicatorEl = document.getElementById('liveIndicator');
+        const muteBtn = document.getElementById('muteBtn');
+        const volumeSlider = document.getElementById('volumeSlider');
+        const chatMessages = document.getElementById('chatMessages');
+        const usernameInput = document.getElementById('usernameInput');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const viewerCountEl = document.getElementById('viewerCount');
+        
+        // Initialize
+        roomCodeEl.textContent = roomCode;
+        socket.emit('join-as-viewer', roomCode);
+        
+        // Chat functionality
+        usernameInput.addEventListener('input', function() {
+            const value = this.value.trim();
+            if (value.length >= 2) {
+                username = value;
+                messageInput.disabled = false;
+                sendBtn.disabled = false;
+                messageInput.placeholder = `Type a message as ${username}...`;
+            } else {
+                username = '';
+                messageInput.disabled = true;
+                sendBtn.disabled = true;
+                messageInput.placeholder = 'Enter a username first...';
+            }
+        });
+
+        messageInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !sendBtn.disabled) {
+                sendMessage();
+            }
+        });
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message && username) {
+                socket.emit('chat-message', {
+                    room: roomCode,
+                    username: username,
+                    message: message,
+                    timestamp: Date.now()
+                });
+                messageInput.value = '';
+            }
+        }
+
+        function addChatMessage(data, isOwn = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${isOwn ? 'own' : ''} ${data.type || ''}`;
+            
+            if (data.type === 'system') {
+                messageDiv.innerHTML = `
+                    <div class="message-text">${data.message}</div>
+                `;
+            } else {
+                const time = new Date(data.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                messageDiv.innerHTML = `
+                    <div class="message-username">${data.username}</div>
+                    <div class="message-text">${data.message}</div>
+                    <div class="message-time">${time}</div>
+                `;
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function updateViewerCount(count) {
+            viewerCount = count;
+            viewerCountEl.textContent = `${count} viewer${count !== 1 ? 's' : ''}`;
+        }
+
+        function leaveStream() {
+            if (confirm('Are you sure you want to leave the stream?')) {
+                socket.disconnect();
+                if (peerConnection) {
+                    peerConnection.close();
+                }
+                window.location.href = '/';
+            }
+        }
+        
+        // Socket events
+        socket.on('joined-as-viewer', () => {
+            addChatMessage({
+                type: 'system',
+                message: 'Connected to stream chat!',
+                timestamp: Date.now()
+            });
+        });
+        
+        socket.on('offer', async (data) => {
+            await handleOffer(data.offer, data.sender);
+        });
+        
+        socket.on('ice-candidate', (data) => {
+            if (peerConnection) {
+                peerConnection.addIceCandidate(data.candidate);
+            }
+        });
+        
+        socket.on('streamer-disconnected', () => {
+            showError('Streamer Disconnected', 'The streamer has ended the stream or lost connection.');
+            liveIndicatorEl.style.display = 'none';
+            addChatMessage({
+                type: 'system',
+                message: 'Streamer has disconnected',
+                timestamp: Date.now()
+            });
+        });
+
+        socket.on('chat-message', (data) => {
+            addChatMessage(data);
+        });
+
+        socket.on('viewer-count', (count) => {
+            updateViewerCount(count);
+        });
+
+        socket.on('user-joined', (data) => {
+            addChatMessage({
+                type: 'system',
+                message: `${data.username} joined the stream`,
+                timestamp: Date.now()
+            });
+        });
+
+        socket.on('user-left', (data) => {
+            addChatMessage({
+                type: 'system',
+                message: `${data.username} left the stream`,
+                timestamp: Date.now()
+            });
+        });
+        
+        // WebRTC handling
+        async function handleOffer(offer, streamerId) {
+            try {
+                peerConnection = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                });
+                
+                // Handle incoming stream
+                peerConnection.ontrack = (event) => {
+                    remoteStream = event.streams[0];
+                    remoteVideo.srcObject = remoteStream;
+                    
+                    // Hide loading screen and show video
+                    loadingScreen.style.display = 'none';
+                    errorScreen.style.display = 'none';
+                    liveIndicatorEl.style.display = 'block';
+                    isConnected = true;
+                };
+                
+                // Handle ICE candidates
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('ice-candidate', {
+                            target: streamerId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                // Handle connection state changes
+                peerConnection.onconnectionstatechange = () => {
+                    const state = peerConnection.connectionState;
+                    console.log('Connection state:', state);
+                    
+                    if (state === 'disconnected' || state === 'failed') {
+                        showError('Connection Lost', 'The connection to the stream was lost.');
+                    }
+                };
+                
+                // Set remote description and create answer
+                await peerConnection.setRemoteDescription(offer);
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                // Send answer to streamer
+                socket.emit('answer', {
+                    target: streamerId,
+                    answer: answer
+                });
+                
+            } catch (error) {
+                console.error('Failed to handle offer:', error);
+                showError('Connection Error', 'Failed to establish connection with the streamer.');
+            }
+        }
+        
+        // Control functions
+        function toggleMute() {
+            if (remoteVideo) {
+                remoteVideo.muted = !remoteVideo.muted;
+                isMuted = remoteVideo.muted;
+                muteBtn.textContent = isMuted ? '🔇' : '🔊';
+                muteBtn.title = isMuted ? 'Unmute' : 'Mute';
+            }
+        }
+        
+        function toggleFullscreen() {
+            const videoContainer = document.getElementById('videoContainer');
+            
+            if (!document.fullscreenElement) {
+                videoContainer.requestFullscreen().catch(err => {
+                    console.error('Error attempting to enable fullscreen:', err);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+        
+        function togglePictureInPicture() {
+            if (remoteVideo && document.pictureInPictureEnabled) {
+                if (document.pictureInPictureElement) {
+                    document.exitPictureInPicture();
+                } else {
+                    remoteVideo.requestPictureInPicture().catch(err => {
+                        console.error('Error attempting to enable PiP:', err);
+                    });
+                }
+            }
+        }
+        
+        function retryConnection() {
+            errorScreen.style.display = 'none';
+            loadingScreen.style.display = 'flex';
+            
+            // Reconnect socket
+            socket.disconnect();
+            socket.connect();
+            socket.emit('join-as-viewer', roomCode);
+        }
+        
+        // Utility functions
+        function showError(title, message) {
+            document.getElementById('errorMessage').textContent = message;
+            errorScreen.querySelector('.error-title').textContent = title;
+            loadingScreen.style.display = 'none';
+            errorScreen.style.display = 'flex';
+            isConnected = false;
+        }
+        
+        // Volume control
+        volumeSlider.addEventListener('input', function() {
+            if (remoteVideo) {
+                remoteVideo.volume = this.value / 100;
+            }
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Don't trigger shortcuts when typing in input fields
+            if (e.target.tagName === 'INPUT') return;
+            
+            switch(e.key) {
+                case 'm':
+                    e.preventDefault();
+                    toggleMute();
+                    break;
+                case 'f':
+                    e.preventDefault();
+                    toggleFullscreen();
+                    break;
+                case 'p':
+                    e.preventDefault();
+                    togglePictureInPicture();
+                    break;
+            }
+        });
+        
+        // Handle page visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && remoteVideo) {
+                // Page is hidden, could pause for bandwidth saving
+            } else if (remoteVideo) {
+                // Page is visible again
+            }
+        });
+        
+        // Auto-retry connection if it fails
+        setTimeout(() => {
+            if (!isConnected) {
+                showError('Connection Timeout', 'Unable to connect to the stream. The streamer might not be broadcasting yet.');
+            }
+        }, 15000);
+        
+        // Handle socket connection issues
+        socket.on('connect_error', () => {
+            showError('Server Connection Failed', 'Unable to connect to the streaming server. Please check your internet connection.');
+        });
+        
+        socket.on('disconnect', () => {
+            addChatMessage({
+                type: 'system',
+                message: 'Disconnected from chat',
+                timestamp: Date.now()
+            });
+        });
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (peerConnection) {
+                peerConnection.close();
+            }
+            socket.disconnect();
+        });
+    </script>
+</body>
+</html>

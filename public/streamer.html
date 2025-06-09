@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeLive - Streamer Dashboard</title>
+    <link rel="icon" type="image/png" href="/liveicon.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #34495e);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .room-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .room-code {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .viewer-count {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+            padding: 20px;
+            height: calc(100vh - 80px);
+        }
+
+        .stream-area {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-section {
+            flex: 1;
+            background: #000;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #localVideo {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .no-camera {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            background: #000;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .control-btn.active {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .control-btn.screen-share {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+        }
+
+        .control-btn.screen-share:hover {
+            box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
+        }
+
+        .sidebar {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-title {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            color: #ecf0f1;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 10px;
+        }
+
+        .viewers-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .viewer-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #2ecc71;
+        }
+
+        .stats {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(46, 204, 113, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .stream-status {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+
+        .status-live {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .status-offline {
+            color: #95a5a6;
+        }
+
+        .hidden {
+            display: none;
+        }
+        .sidebar-toggle {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: #2c3e50;
+            color: white;
+            cursor: pointer;
+        }
+
+        .tab-btn.active {
+            background: #34495e;
+        }
+
+        .tab-content.hidden {
+            display: none;
+        }
+
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .room-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">🎥 Streamer Dashboard</div>
+        <div class="room-info">
+            <div class="room-code" id="roomCode">LOADING...</div>
+            <div class="viewer-count">👥 <span id="viewerCount">0</span> viewers</div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="stream-area">
+            <div class="stream-status">
+                <span id="streamStatus" class="status-offline">● OFFLINE</span>
+            </div>
+            
+            <div class="preview-section">
+                <video id="localVideo" autoplay muted playsinline></video>
+                <div id="noCamera" class="no-camera hidden">
+                    📷 No Camera Available - Screen Share Mode
+                </div>
+            </div>
+
+            <div class="controls">
+                <button class="control-btn" id="cameraBtn" onclick="toggleCamera()">
+                    📹 Camera
+                </button>
+                <button class="control-btn" id="micBtn" onclick="toggleMic()">
+                    🎤 Microphone
+                </button>
+                <button class="control-btn screen-share" id="screenShareBtn" onclick="toggleScreenShare()">
+                    💻 Screen Share
+                </button>
+                    <button class="control-btn" id="streamBtn" onclick="toggleStream()">
+                        🟢 Start Stream
+                    </button>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <div class="sidebar-toggle">
+            <button onclick="showTab('viewers')" id="viewersTabBtn" class="tab-btn active">👥 Viewers</button>
+            <button onclick="showTab('chat')" id="chatTabBtn" class="tab-btn">💬 Chats</button>
+        </div>
+
+        <div class="tab-content" id="viewersTab">
+            <div class="sidebar-title">Connected Viewers</div>
+            <div class="viewers-list" id="viewersList">
+                <div style="text-align: center; color: #95a5a6; margin-top: 50px;">
+                    No viewers connected
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content hidden" id="chatTab">
+            <div class="sidebar-title">Chat Messages</div>
+            <div class="chat-messages" id="chatMessages" style="max-height: 300px; overflow-y: auto; padding: 10px;">
+                <div style="text-align: center; color: #95a5a6; margin-top: 50px;">
+                    No messages yet
+                </div>
+            </div>
+        </div>
+
+            
+            <div class="stats">
+                <div class="stat-item">
+                    <span>Stream Duration:</span>
+                    <span id="streamDuration">00:00</span>
+                </div>
+                <div class="stat-item">
+                    <span>Connection:</span>
+                    <span id="connectionStatus">Connecting...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const roomCode = window.location.pathname.split('/').pop();
+        
+        let localStream = null;
+        let screenStream = null;
+        let isStreaming = false;
+        let isCameraOn = false;
+        let isMicOn = false;
+        let isScreenSharing = false;
+        let viewers = new Map();
+        let peerConnections = new Map();
+        let streamStartTime = null;
+        let streamDurationInterval = null;
+        
+        // DOM elements
+        const localVideo = document.getElementById('localVideo');
+        const noCamera = document.getElementById('noCamera');
+        const roomCodeEl = document.getElementById('roomCode');
+        const viewerCountEl = document.getElementById('viewerCount');
+        const streamStatusEl = document.getElementById('streamStatus');
+        const viewersListEl = document.getElementById('viewersList');
+        const connectionStatusEl = document.getElementById('connectionStatus');
+        const streamDurationEl = document.getElementById('streamDuration');
+        
+        // Initialize
+        roomCodeEl.textContent = roomCode;
+        socket.emit('join-as-streamer', roomCode);
+        
+        // Socket events
+        socket.on('joined-as-streamer', () => {
+            connectionStatusEl.textContent = 'Connected';
+            showNotification('Connected to room successfully!');
+            initializeMedia();
+        });
+        
+        socket.on('viewer-joined', (viewerId) => {
+            viewers.set(viewerId, { id: viewerId, connected: Date.now() });
+            updateViewersList();
+            showNotification('New viewer joined!');
+            
+            if (isStreaming) {
+                setupPeerConnection(viewerId);
+            }
+        });
+        
+        socket.on('viewer-left', (viewerId) => {
+            viewers.delete(viewerId);
+            if (peerConnections.has(viewerId)) {
+                peerConnections.get(viewerId).close();
+                peerConnections.delete(viewerId);
+            }
+            updateViewersList();
+        });
+        
+        // WebRTC signaling
+        socket.on('answer', async (data) => {
+            const pc = peerConnections.get(data.sender);
+            if (pc) {
+                await pc.setRemoteDescription(data.answer);
+            }
+        });
+        
+        socket.on('ice-candidate', (data) => {
+            const pc = peerConnections.get(data.sender);
+            if (pc) {
+                pc.addIceCandidate(data.candidate);
+            }
+        });
+        
+        // Initialize media
+        async function initializeMedia() {
+            try {
+                // Try to get camera first
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: true
+                    });
+                    localVideo.srcObject = localStream;
+                    isCameraOn = true;
+                    isMicOn = true;
+                    updateButtonStates();
+                } catch (cameraError) {
+                    console.log('Camera not available:', cameraError);
+                    // Show no camera message
+                    localVideo.style.display = 'none';
+                    noCamera.classList.remove('hidden');
+                    
+                    // Try to get audio only
+                    try {
+                        localStream = await navigator.mediaDevices.getUserMedia({
+                            audio: true
+                        });
+                        isMicOn = true;
+                    } catch (audioError) {
+                        console.log('Audio not available:', audioError);
+                    }
+                }
+            } catch (error) {
+                console.error('Media initialization failed:', error);
+                showNotification('Media access failed. Please check permissions.');
+            }
+        }
+        
+        // Toggle functions
+        function toggleCamera() {
+            if (!localStream) return;
+            
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                isCameraOn = videoTrack.enabled;
+                updateButtonStates();
+            }
+        }
+        
+        function toggleMic() {
+            if (!localStream) return;
+            
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                isMicOn = audioTrack.enabled;
+                updateButtonStates();
+            }
+        }
+        
+        async function toggleScreenShare() {
+            if (!isScreenSharing) {
+                try {
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true,
+                        audio: true
+                    });
+                    
+                    // Replace video track in existing connections
+                    const videoTrack = screenStream.getVideoTracks()[0];
+                    for (const [viewerId, pc] of peerConnections) {
+                        const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+                        if (sender) {
+                            await sender.replaceTrack(videoTrack);
+                        }
+                    }
+                    
+                    localVideo.srcObject = screenStream;
+                    localVideo.style.display = 'block';
+                    noCamera.classList.add('hidden');
+                    isScreenSharing = true;
+                    
+                    screenStream.getVideoTracks()[0].onended = () => {
+                        stopScreenShare();
+                    };
+                    
+                } catch (error) {
+                    console.error('Screen share failed:', error);
+                    showNotification('Screen sharing failed. Please try again.');
+                }
+            } else {
+                stopScreenShare();
+            }
+            updateButtonStates();
+        }
+        
+        async function stopScreenShare() {
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+                screenStream = null;
+            }
+            
+            isScreenSharing = false;
+            
+            // Switch back to camera if available
+            if (localStream && localStream.getVideoTracks().length > 0) {
+                const videoTrack = localStream.getVideoTracks()[0];
+                for (const [viewerId, pc] of peerConnections) {
+                    const sender = pc.getSenders().find(s => s.track?.kind === 'video');
+                    if (sender) {
+                        await sender.replaceTrack(videoTrack);
+                    }
+                }
+                localVideo.srcObject = localStream;
+            } else {
+                localVideo.style.display = 'none';
+                noCamera.classList.remove('hidden');
+            }
+            
+            updateButtonStates();
+        }
+        
+        function toggleStream() {
+            if (!isStreaming) {
+                startStream();
+            } else {
+                stopStream();
+            }
+        }
+        
+        function startStream() {
+            if (!localStream && !screenStream) {
+                showNotification('No media source available. Please enable camera or screen share.');
+                return;
+            }
+            
+            isStreaming = true;
+            streamStartTime = Date.now();
+            updateStreamStatus();
+            
+            const streamBtn = document.getElementById('streamBtn');
+            if (streamBtn) {
+                streamBtn.textContent = '🛑 Stop Stream';
+            }
+            
+            for (const viewerId of viewers.keys()) {
+                setupPeerConnection(viewerId);
+            }
+            
+            showNotification('Stream started successfully!');
+            
+            streamDurationInterval = setInterval(updateStreamDuration, 1000);
+        }
+
+        function stopStream() {
+            isStreaming = false;
+            streamStartTime = null;
+            updateStreamStatus();
+
+            const streamBtn = document.getElementById('streamBtn');
+            if (streamBtn) {
+                streamBtn.textContent = '🟢 Start Stream';
+                streamBtn.classList.remove('active');
+            }
+
+            for (const [viewerId, pc] of peerConnections) {
+                pc.close();
+            }
+            peerConnections.clear();
+
+            if (streamDurationInterval) {
+                clearInterval(streamDurationInterval);
+                streamDurationInterval = null;
+            }
+            streamDurationEl.textContent = '00:00';
+
+            showNotification('Stream stopped.');
+        }
+
+        async function setupPeerConnection(viewerId) {
+            try {
+                const pc = new RTCPeerConnection({
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                });
+                
+                // Add local stream tracks
+                const streamToSend = isScreenSharing ? screenStream : localStream;
+                if (streamToSend) {
+                    streamToSend.getTracks().forEach(track => {
+                        pc.addTrack(track, streamToSend);
+                    });
+                }
+                
+                // Handle ICE candidates
+                pc.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('ice-candidate', {
+                            target: viewerId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                // Handle connection state changes
+                pc.onconnectionstatechange = () => {
+                    const state = pc.connectionState;
+                    console.log(`Connection state with ${viewerId}:`, state);
+                    
+                    if (state === 'disconnected' || state === 'failed') {
+                        peerConnections.delete(viewerId);
+                    }
+                };
+                
+                // Create offer
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                
+                // Store peer connection
+                peerConnections.set(viewerId, pc);
+                
+                // Send offer to viewer
+                socket.emit('offer', {
+                    target: viewerId,
+                    offer: offer
+                });
+                
+            } catch (error) {
+                console.error('Failed to setup peer connection:', error);
+            }
+        }
+        
+        function updateButtonStates() {
+            const cameraBtn = document.getElementById('cameraBtn');
+            const micBtn = document.getElementById('micBtn');
+            const screenShareBtn = document.getElementById('screenShareBtn');
+            const streamBtn = document.getElementById('streamBtn');
+            
+            // Camera button
+            if (isCameraOn) {
+                cameraBtn.classList.add('active');
+                cameraBtn.innerHTML = '📹 Camera ON';
+            } else {
+                cameraBtn.classList.remove('active');
+                cameraBtn.innerHTML = '📹 Camera OFF';
+            }
+            
+            // Microphone button
+            if (isMicOn) {
+                micBtn.classList.add('active');
+                micBtn.innerHTML = '🎤 Mic ON';
+            } else {
+                micBtn.classList.remove('active');
+                micBtn.innerHTML = '🎤 Mic OFF';
+            }
+            
+            // Screen share button
+            if (isScreenSharing) {
+                screenShareBtn.classList.add('active');
+                screenShareBtn.innerHTML = '💻 Stop Sharing';
+            } else {
+                screenShareBtn.classList.remove('active');
+                screenShareBtn.innerHTML = '💻 Screen Share';
+            }
+            
+            // Stream button
+            if (isStreaming) {
+                streamBtn.classList.add('active');
+                streamBtn.innerHTML = '⏹️ Stop Stream';
+            } else {
+                streamBtn.classList.remove('active');
+                streamBtn.innerHTML = '🟢 Start Stream';
+            }
+        }
+        
+        function updateStreamStatus() {
+            if (isStreaming) {
+                streamStatusEl.textContent = '🔴 LIVE';
+                streamStatusEl.className = 'status-live';
+            } else {
+                streamStatusEl.textContent = '● OFFLINE';
+                streamStatusEl.className = 'status-offline';
+            }
+        }
+        
+        function updateViewersList() {
+            const count = viewers.size;
+            viewerCountEl.textContent = count;
+            
+            if (count === 0) {
+                viewersListEl.innerHTML = `
+                    <div style="text-align: center; color: #95a5a6; margin-top: 50px;">
+                        No viewers connected
+                    </div>
+                `;
+            } else {
+                viewersListEl.innerHTML = '';
+                for (const [viewerId, viewer] of viewers) {
+                    const viewerEl = document.createElement('div');
+                    viewerEl.className = 'viewer-item';
+                    viewerEl.innerHTML = `
+                        <div class="status-indicator"></div>
+                        <div>Viewer ${viewerId.substring(0, 8)}</div>
+                    `;
+                    viewersListEl.appendChild(viewerEl);
+                }
+            }
+        }
+        
+        function updateStreamDuration() {
+            if (streamStartTime) {
+                const duration = Date.now() - streamStartTime;
+                const minutes = Math.floor(duration / 60000);
+                const seconds = Math.floor((duration % 60000) / 1000);
+                streamDurationEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        function showNotification(message) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Socket connection handling
+        socket.on('connect', () => {
+            connectionStatusEl.textContent = 'Connected';
+        });
+        
+        socket.on('disconnect', () => {
+            connectionStatusEl.textContent = 'Disconnected';
+            showNotification('Connection lost. Attempting to reconnect...');
+        });
+        
+        socket.on('connect_error', () => {
+            connectionStatusEl.textContent = 'Connection Error';
+            showNotification('Failed to connect to server.');
+        });
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (isStreaming) {
+                stopStream();
+            }
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            
+            if (screenStream) {
+                screenStream.getTracks().forEach(track => track.stop());
+            }
+            
+            socket.disconnect();
+        });
+        
+        // Initialize button states
+        updateButtonStates();
+        updateStreamStatus();
+
+        function showTab(tab) {
+            const viewersTab = document.getElementById('viewersTab');
+            const chatTab = document.getElementById('chatTab');
+            const viewersBtn = document.getElementById('viewersTabBtn');
+            const chatBtn = document.getElementById('chatTabBtn');
+
+            if (tab === 'viewers') {
+                viewersTab.classList.remove('hidden');
+                chatTab.classList.add('hidden');
+                viewersBtn.classList.add('active');
+                chatBtn.classList.remove('active');
+            } else {
+                viewersTab.classList.add('hidden');
+                chatTab.classList.remove('hidden');
+                viewersBtn.classList.remove('active');
+                chatBtn.classList.add('active');
+            }
+        }
+
+    </script>
+
+    <script>
+        socket.on('chat-message', (data) => {
+        const { senderId, username, message, timestamp } = data;
+        const chatMessages = document.getElementById('chatMessages');
+
+        // Remove the placeholder message if present
+        const placeholder = chatMessages.querySelector('div[style*="text-align: center"]');
+        if (placeholder) {
+            placeholder.remove();
+        }
+
+        const messageEl = document.createElement('div');
+        messageEl.style.marginBottom = '10px';
+
+        if (senderId === socket.id) {
+            messageEl.innerHTML = `<div style="text-align: right;"><strong>You:</strong> ${message}</div>`;
+        } else {
+            messageEl.innerHTML = `<div><strong>${username || 'Viewer'}:</strong> ${message}</div>`;
+        }
+
+        chatMessages.appendChild(messageEl);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        });
+
+    </script>
+
+</body>
+</html>

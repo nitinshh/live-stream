@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VibeLive</title>
+    <link rel="icon" type="image/png" href="/liveicon.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            background-image: url('/background1.gif');
+            background-size: cover;       
+            background-position: center;  
+            background-repeat: no-repeat;             color: #cbd5e1;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(223, 66, 79, 0.404);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #868e96, #dee2e6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        .action-section {
+            margin: 30px 0;
+        }
+
+        .action-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: #fff;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        .secondary-btn {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
+        }
+
+        .secondary-btn:hover {
+            box-shadow: 0 6px 20px rgba(78, 205, 196, 0.6);
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        input {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 25px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            width: 150px;
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .room-code {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4ecdc4;
+            margin: 20px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            letter-spacing: 3px;
+        }
+
+        .links {
+            margin-top: 20px;
+        }
+
+        .link {
+            display: block;
+            color: #4ecdc4;
+            text-decoration: none;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .link:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 30px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>VibeLive</h1>
+        <p class="subtitle">Where Every Stream Has a Pulse</p>
+        
+        <div class="action-section">
+            <h3 class="action-title">Start Streaming</h3>
+            <button onclick="createRoom()">Create New Stream</button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="action-section">
+            <h3 class="action-title">Join Stream</h3>
+            <div class="input-group">
+                <input type="text" id="roomCodeInput" placeholder="ROOM CODE" maxlength="6">
+                <button class="secondary-btn" onclick="joinRoom()">Join</button>
+            </div>
+        </div>
+
+        <div id="roomInfo" class="hidden">
+            <div class="divider"></div>
+            <h3 class="action-title">Stream Created!</h3>
+            <div class="room-code" id="generatedCode"></div>
+            <div class="links">
+                <a href="#" id="streamerLink" class="link" target="_blank">
+                    🎥 Open Streamer Dashboard
+                </a>
+                <a href="#" id="viewerLink" class="link" target="_blank">
+                    👁️ Share this link with viewers
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function createRoom() {
+            try {
+                const response = await fetch('/create-room');
+                const data = await response.json();
+                const roomCode = data.roomCode;
+                
+                document.getElementById('generatedCode').textContent = roomCode;
+                document.getElementById('streamerLink').href = `/stream/${roomCode}`;
+                document.getElementById('viewerLink').href = `/watch/${roomCode}`;
+                document.getElementById('roomInfo').classList.remove('hidden');
+                
+                // Auto copy room code to clipboard
+                navigator.clipboard.writeText(roomCode).catch(() => {});
+                
+            } catch (error) {
+                alert('Failed to create room. Please try again.');
+            }
+        }
+
+        function joinRoom() {
+            const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+            if (roomCode.length === 6) {
+                window.open(`/watch/${roomCode}`, '_blank');
+            } else {
+                alert('Please enter a valid 6-character room code');
+            }
+        }
+
+        // Enter key support for room code input
+        document.getElementById('roomCodeInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinRoom();
+            }
+        });
+
+        // Auto-uppercase room code input
+        document.getElementById('roomCodeInput').addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase();
+        });
+    </script>
+</body>
+</html>
