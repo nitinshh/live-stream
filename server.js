@@ -14,7 +14,6 @@ const io = socketIo(server, {
 });
 
 // Serve static files
-app.use(express.static('public'));
 
 // Store room information
 const rooms = new Map();
@@ -28,7 +27,7 @@ app.get('/create-room', (req, res) => {
     viewers: new Set(),
     created: Date.now()
   });
-
+  
   res.setHeader('Content-Type', 'application/json');
   res.status(200).send(JSON.stringify({ roomCode }));
 });
@@ -51,10 +50,13 @@ app.get('/watch/:roomCode', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'viewer.html'));
 });
 
+app.use(express.static('public'));
+
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
-
+  
   // Join room as streamer
   socket.on('join-as-streamer', (roomCode) => {
     const room = rooms.get(roomCode);
@@ -66,7 +68,7 @@ io.on('connection', (socket) => {
       console.log(`Streamer ${socket.id} joined room ${roomCode}`);
     }
   });
-
+  
   // Join room as viewer
   socket.on('join-as-viewer', (roomCode) => {
     const room = rooms.get(roomCode);
@@ -84,7 +86,7 @@ io.on('connection', (socket) => {
       console.log(`Viewer ${socket.id} joined room ${roomCode}`);
     }
   });
-
+  
   // WebRTC signaling
   socket.on('offer', (data) => {
     socket.to(data.target).emit('offer', {
@@ -99,14 +101,14 @@ io.on('connection', (socket) => {
       sender: socket.id
     });
   });
-
+  
   socket.on('ice-candidate', (data) => {
     socket.to(data.target).emit('ice-candidate', {
       candidate: data.candidate,
       sender: socket.id
     });
   });
-
+  
   // Handle disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
@@ -128,14 +130,14 @@ io.on('connection', (socket) => {
       }
     }
   });
-
-    // Chat message handler
-    socket.on('chat-message', (data) => {
+  
+  // Chat message handler
+  socket.on('chat-message', (data) => {
     const { username, message, timestamp } = data;
-
+    
     const roomCode = socket.roomCode;
     const senderId = socket.id;
-
+    
     if (roomCode) {
       io.to(roomCode).emit('chat-message', {
         senderId,
@@ -145,9 +147,9 @@ io.on('connection', (socket) => {
       });
     }
   });
-
-
-
+  
+  
+  
 });
 
 // Clean up old rooms (older than 24 hours)
