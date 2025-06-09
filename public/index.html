@@ -19,46 +19,99 @@
             background-image: url('/background1.gif');
             background-size: cover;       
             background-position: center;  
-            background-repeat: no-repeat;             color: #cbd5e1;
+            background-repeat: no-repeat;
+            color: #cbd5e1;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 30px;
+            align-items: stretch;
+            max-width: 1200px;
+            width: 100%;
+            height: 80vh;
+            max-height: 600px;
         }
 
         .container {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 8px 32px rgba(223, 66, 79, 0.404);
             border: 1px solid rgba(255, 255, 255, 0.18);
             text-align: center;
-            max-width: 500px;
-            width: 90%;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .container:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+
+        .container:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
         }
 
         h1 {
-            font-size: 3rem;
+            font-size: 2.5rem;
             margin-bottom: 10px;
             background: linear-gradient(45deg, #868e96, #dee2e6);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            animation: pulse 2s infinite;
         }
 
         .subtitle {
-            font-size: 1.2rem;
-            margin-bottom: 40px;
+            font-size: 1rem;
+            margin-bottom: 30px;
             opacity: 0.9;
         }
 
-        .action-section {
-            margin: 30px 0;
-        }
-
         .action-title {
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             margin-bottom: 20px;
             color: #fff;
         }
@@ -72,8 +125,10 @@
             border-radius: 50px;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin: 10px;
+            margin: 10px 0;
             box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            width: 100%;
+            max-width: 200px;
         }
 
         button:hover {
@@ -92,10 +147,9 @@
 
         .input-group {
             display: flex;
-            gap: 10px;
-            justify-content: center;
+            flex-direction: column;
+            gap: 15px;
             align-items: center;
-            margin-top: 20px;
         }
 
         input {
@@ -108,7 +162,9 @@
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 2px;
-            width: 150px;
+            width: 100%;
+            max-width: 200px;
+            transition: all 0.3s ease;
         }
 
         input::placeholder {
@@ -118,17 +174,31 @@
         input:focus {
             outline: none;
             background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.02);
+        }
+
+        .room-info {
+            opacity: 0;
+            transform: translateX(20px);
+            transition: all 0.5s ease;
+        }
+
+        .room-info.show {
+            opacity: 1;
+            transform: translateX(0);
+            animation: slideIn 0.5s ease;
         }
 
         .room-code {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
             color: #4ecdc4;
             margin: 20px 0;
-            padding: 10px;
+            padding: 15px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
+            border-radius: 15px;
             letter-spacing: 3px;
+            border: 2px solid rgba(78, 205, 196, 0.3);
         }
 
         .links {
@@ -140,58 +210,72 @@
             color: #4ecdc4;
             text-decoration: none;
             margin: 10px 0;
-            padding: 10px;
+            padding: 12px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
-            transition: background 0.3s ease;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
         }
 
         .link:hover {
             background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
 
         .hidden {
             display: none;
         }
 
-        .divider {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.3);
-            margin: 30px 0;
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+                height: auto;
+                gap: 20px;
+            }
+            
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>VibeLive</h1>
-        <p class="subtitle">Where Every Stream Has a Pulse</p>
-        
-        <div class="action-section">
-            <h3 class="action-title">Start Streaming</h3>
-            <button onclick="createRoom()">Create New Stream</button>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="action-section">
-            <h3 class="action-title">Join Stream</h3>
-            <div class="input-group">
-                <input type="text" id="roomCodeInput" placeholder="ROOM CODE" maxlength="6">
-                <button class="secondary-btn" onclick="joinRoom()">Join</button>
+    <div class="main-container">
+        <!-- Header Section -->
+        <div class="container">
+            <h1>VibeLive</h1>
+            <p class="subtitle">Where Every Stream Has a Pulse</p>
+            
+            <div>
+                <h3 class="action-title">Start Streaming</h3>
+                <button onclick="createRoom()">Create New Stream</button>
             </div>
         </div>
 
-        <div id="roomInfo" class="hidden">
-            <div class="divider"></div>
+        <!-- Join Section -->
+        <div class="container">
+            <h3 class="action-title">Join Stream</h3>
+            <div class="input-group">
+                <input type="text" id="roomCodeInput" placeholder="ROOM CODE" maxlength="6">
+                <button class="secondary-btn" onclick="joinRoom()">Join Stream</button>
+            </div>
+        </div>
+
+        <!-- Room Info Section -->
+        <div class="container room-info hidden" id="roomInfo">
             <h3 class="action-title">Stream Created!</h3>
             <div class="room-code" id="generatedCode"></div>
             <div class="links">
                 <a href="#" id="streamerLink" class="link" target="_blank">
-                    🎥 Open Streamer Dashboard
+                    🎥 Streamer Dashboard
                 </a>
-                <a href="#" id="viewerLink" class="link" target="_blank">
-                    👁️ Share this link with viewers
-                </a>
+                <!-- <a href="#" id="viewerLink" class="link" target="_blank">
+                    👁️ Viewer Link
+                </a> -->
             </div>
         </div>
     </div>
@@ -205,8 +289,13 @@
                 
                 document.getElementById('generatedCode').textContent = roomCode;
                 document.getElementById('streamerLink').href = `/stream/${roomCode}`;
-                document.getElementById('viewerLink').href = `/watch/${roomCode}`;
-                document.getElementById('roomInfo').classList.remove('hidden');
+                // document.getElementById('viewerLink').href = `/watch/${roomCode}`;
+                
+                const roomInfo = document.getElementById('roomInfo');
+                roomInfo.classList.remove('hidden');
+                setTimeout(() => {
+                    roomInfo.classList.add('show');
+                }, 100);
                 
                 // Auto copy room code to clipboard
                 navigator.clipboard.writeText(roomCode).catch(() => {});
