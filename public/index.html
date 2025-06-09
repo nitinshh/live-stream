@@ -342,28 +342,31 @@
     </div>
 
     <script>
-      async function createRoom() {
-        try {
-          const response = await fetch("/create-room");
-          const data = await response.json();
-          const roomCode = data.roomCode;
+    async function createRoom() {
+      try {
+        const response = await fetch("/create-room");
 
-          document.getElementById("generatedCode").textContent = roomCode;
-          document.getElementById("streamerLink").href = `/stream/${roomCode}`;
-          // document.getElementById('viewerLink').href = `/watch/${roomCode}`;
-
-          const roomInfo = document.getElementById("roomInfo");
-          roomInfo.classList.remove("hidden");
-          setTimeout(() => {
-            roomInfo.classList.add("show");
-          }, 100);
-
-          // Auto copy room code to clipboard
-          navigator.clipboard.writeText(roomCode).catch(() => {});
-        } catch (error) {
-          alert("Failed to create room. Please try again.");
+        if (!response.ok) {
+          throw new Error("Server returned an error");
         }
+
+        const data = await response.json();
+        const roomCode = data.roomCode;
+
+        document.getElementById("generatedCode").textContent = roomCode;
+        document.getElementById("streamerLink").href = `/stream/${roomCode}`;
+        const roomInfo = document.getElementById("roomInfo");
+        roomInfo.classList.remove("hidden");
+        setTimeout(() => {
+          roomInfo.classList.add("show");
+        }, 100);
+
+        navigator.clipboard.writeText(roomCode).catch(() => {});
+      } catch (error) {
+        alert("Failed to create room. Please try again.");
+        console.error(error); // <— helpful to debug
       }
+    }
 
       function joinRoom() {
         const roomCode = document
