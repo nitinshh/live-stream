@@ -49,7 +49,7 @@
             align-items: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             position: relative;
-            z-index: 100;
+            /* z-index: 100; */
         }
 
         .header-left {
@@ -101,7 +101,7 @@
             padding: 8px 15px;
             border-radius: 20px;
             font-size: 0.9rem;
-            letter-spacing: 1px;
+            letter-spacing: 3px;
         }
 
         .video-container {
@@ -292,7 +292,7 @@
 
         /* Chat Styles */
         .chat-header {
-            padding: 15px 20px;
+            padding: 20px 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             background: rgba(0, 0, 0, 0.5);
         }
@@ -433,6 +433,40 @@
             cursor: not-allowed;
         }
 
+        .chat-toggle-btn {
+            position: absolute;
+            top: 15px;
+            right: 10px;
+            z-index: 10;
+            background-color: #444;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            outline: 2px solid rgb(52, 146, 235);
+        }
+
+        .loading-screen,
+        .error-screen {
+            z-index: 5; 
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000cc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-toggle-btn {
+            z-index: 10;
+        }
+
+
         @media (max-width: 768px) {
             .main-container {
                 flex-direction: column;
@@ -496,12 +530,12 @@
             <div class="header">
                 <div class="header-left">
                     <div class="title">
-                        <span>🎥 LiveStream Pro</span>
+                        <span>🎥 VibeLive</span>
                         <div class="live-indicator" id="liveIndicator" style="display: none;">🔴 LIVE</div>
                     </div>
                     <button class="leave-btn" onclick="leaveStream()">Leave Stream</button>
+                    <div class="room-code" id="roomCode">LOADING...</div>
                 </div>
-                <div class="room-code" id="roomCode">LOADING...</div>
             </div>
 
             <div class="video-container" id="videoContainer">
@@ -544,22 +578,22 @@
                     </div>
                 </div>
             </div>
+            
+            <button id="toggleChatBtn" class="chat-toggle-btn" onclick="toggleChat()">💬 Show Chat</button>
         </div>
 
-        <div class="chat-section">
+  <div class="chat-section" id="chatSection" style="display: none;">
             <div class="chat-header">
                 <div class="chat-title">
                     💬 Live Chat
                     <div class="viewer-count" id="viewerCount">0 viewers</div>
                 </div>
             </div>
-            
             <div class="chat-messages" id="chatMessages">
                 <div class="chat-message system">
                     <div class="message-text">Welcome to the live stream! Chat with other viewers below.</div>
                 </div>
             </div>
-            
             <div class="chat-input-container">
                 <input type="text" class="username-input" id="usernameInput" placeholder="Enter your username..." maxlength="20">
                 <div class="message-input-group">
@@ -571,7 +605,10 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
+    
     <script>
+        var usernameLocked = false;
+
         const socket = io();
         const roomCode = window.location.pathname.split('/').pop();
         
@@ -601,20 +638,6 @@
         socket.emit('join-as-viewer', roomCode);
         
         // Chat functionality
-        usernameInput.addEventListener('input', function() {
-            const value = this.value.trim();
-            if (value.length >= 2) {
-                username = value;
-                messageInput.disabled = false;
-                sendBtn.disabled = false;
-                messageInput.placeholder = `Type a message as ${username}...`;
-            } else {
-                username = '';
-                messageInput.disabled = true;
-                sendBtn.disabled = true;
-                messageInput.placeholder = 'Enter a username first...';
-            }
-        });
 
         messageInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter' && !sendBtn.disabled) {
@@ -624,7 +647,13 @@
 
         function sendMessage() {
             const message = messageInput.value.trim();
-            if (message && username) {
+
+            if (!usernameLocked || !username) {
+                alert("Please set your username before sending messages.");
+                return;
+            }
+
+            if (message) {
                 socket.emit('chat-message', {
                     room: roomCode,
                     username: username,
@@ -882,16 +911,26 @@
         
         // Handle socket connection issues
         socket.on('connect_error', () => {
-            showError('Server Connection Failed', 'Unable to connect to the streaming server. Please check your internet connection.');
+            console.warn('Connection error');
+            showError('Server Connection Failed', 'Streaming is unavailable, but you can still chat.');
         });
-        
+
         socket.on('disconnect', () => {
             addChatMessage({
                 type: 'system',
-                message: 'Disconnected from chat',
+                message: 'Disconnected from streaming server. Chat might still work if reconnected.',
                 timestamp: Date.now()
             });
+
+            // Optional: try reconnecting automatically
+            setTimeout(() => {
+                if (!socket.connected) {
+                    socket.connect();
+                    socket.emit('join-as-viewer', roomCode);
+                }
+            }, 3000);
         });
+
         
         // Clean up on page unload
         window.addEventListener('beforeunload', () => {
@@ -900,6 +939,46 @@
             }
             socket.disconnect();
         });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            let chatVisible = false;
+            const chatSection = document.querySelector('.chat-section');
+            const toggleBtn = document.getElementById('toggleChatBtn');
+            const usernameInput = document.getElementById('usernameInput');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+
+            // Start with inputs disabled
+            messageInput.disabled = true;
+            sendBtn.disabled = true;
+
+            function toggleChat() {
+                chatVisible = !chatVisible;
+                chatSection.style.display = chatVisible ? 'flex' : 'none';
+                toggleBtn.textContent = chatVisible ? '💬 Hide Chat' : '💬 Show Chat';
+            }
+
+            toggleBtn.addEventListener('click', toggleChat);
+
+            usernameInput.addEventListener('keypress', function (e) {
+                if (!usernameLocked && e.key === 'Enter') {
+                    const value = this.value.trim();
+                    if (value.length >= 2) {
+                        username = value;
+                        usernameLocked = true;
+                        usernameInput.disabled = true;
+                        messageInput.disabled = false;
+                        sendBtn.disabled = false;
+                        messageInput.placeholder = `Type a message as ${username}...`;
+
+                        socket.emit('user-joined', { room: roomCode, username: username });
+                    }
+                }
+            });
+        });
+
     </script>
+
+
 </body>
 </html>

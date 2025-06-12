@@ -249,6 +249,50 @@
         display: none;
       }
 
+      .notification-bar {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 107, 107, 0.15);
+        color: #ffeaea;
+        border: 1px solid rgba(255, 107, 107, 0.3);
+        backdrop-filter: blur(10px);
+        padding: 15px 25px;
+        border-radius: 15px;
+        font-size: 0.95rem;
+        box-shadow: 0 4px 20px rgba(255, 107, 107, 0.25);
+        z-index: 9999;
+        opacity: 0;
+        transform: translate(-50%, -20px);
+        transition: opacity 0.4s, transform 0.4s;
+      }
+
+      .notification-bar.show {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      .notification-bar.hide {
+        opacity: 0;
+        transform: translate(-50%, -20px);
+      }
+
+      .notification-bar.hidden {
+        display: none;
+      }
+
+      @keyframes fadeSlideDown {
+        from {
+          opacity: 0;
+          transform: translate(-50%, -20px);
+        }
+        to {
+          opacity: 1;
+          transform: translate(-50%, 0);
+        }
+      }
+
       @media (max-width: 768px) {
         .main-container {
           flex-direction: column;
@@ -298,6 +342,8 @@
     </style>
   </head>
   <body>
+    <div id="notification" class="notification-bar hidden"></div>
+
     <div class="main-container">
       <!-- Header Section -->
       <div class="container">
@@ -344,7 +390,7 @@
     <script>
     async function createRoom() {
       try {
-        const response = await fetch("/create-room");
+        const response = await fetch(window.location.origin + "/create-room");
 
         if (!response.ok) {
           throw new Error("Server returned an error");
@@ -363,7 +409,7 @@
 
         navigator.clipboard.writeText(roomCode).catch(() => {});
       } catch (error) {
-        alert("Failed to create room. Please try again.");
+        showNotification("🚫 Failed to create room. Please try again.");
         console.error(error); // <— helpful to debug
       }
     }
@@ -376,7 +422,7 @@
         if (roomCode.length === 6) {
           window.open(`/watch/${roomCode}`, "_blank");
         } else {
-          alert("Please enter a valid 6-character room code");
+          showNotification("❗ Please enter a valid 6-character room code");
         }
       }
 
@@ -396,5 +442,29 @@
           e.target.value = e.target.value.toUpperCase();
         });
     </script>
+
+    <script>
+      function showNotification(message) {
+        const bar = document.getElementById("notification");
+        bar.textContent = message;
+        bar.classList.remove("hidden", "hide");
+
+        // Force reflow to ensure transition triggers
+        void bar.offsetWidth;
+
+        bar.classList.add("show");
+
+        setTimeout(() => {
+          bar.classList.remove("show");
+          bar.classList.add("hide");
+
+          setTimeout(() => {
+            bar.classList.add("hidden");
+          }, 400); // Wait for hide transition
+        }, 3500);
+      }
+    </script>
+
+
   </body>
 </html>
